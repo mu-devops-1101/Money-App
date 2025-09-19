@@ -12,7 +12,7 @@ public class PaymentMethod {
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
     private String id;
     private String name;
-    private String user_id;
+    private String userId;
 
     public String getId() {
         return id;
@@ -30,12 +30,12 @@ public class PaymentMethod {
         this.name = name;
     }
 
-    public String getUser_id(){
-        return user_id;
+    public String getuserId(){
+        return userId;
     }
 
-    public void setUser_id(String user_id){
-        this.user_id=user_id;
+    public void setUser_id(String userId){
+        this.userId=userId;
     }
 
 
