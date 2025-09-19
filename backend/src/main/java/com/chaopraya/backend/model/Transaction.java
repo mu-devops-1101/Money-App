@@ -47,4 +47,61 @@ public class Transaction {
     public void setAmount(double amount) {
         this.amount = amount;
     }
+
+    public String getNote(){
+        return note;
+    }
+
+    public void setNote(String note){
+        this.note = note;
+    }
+    
+    public String getLocation(){
+        return location;
+    }
+
+    public void setLocation(String location){
+        this.location=location;
+    }
+
+    public LocalDateTime getDate(){
+        return date;
+    }
+
+    public void setDate(LocalDateTime date){
+        this.date=date;
+    }
+
+    public User getUser() {
+    return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+
+    public PaymentMethod getPaymentMethod(){
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(PaymentMethod paymentMethod){ 
+        this.paymentMethod=paymentMethod;
+    }
+
+    public TransactionType getType(){
+        return type;
+    }
+
+    
+
+
+
 }
