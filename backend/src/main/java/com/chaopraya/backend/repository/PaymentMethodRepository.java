@@ -1,9 +1,19 @@
 package com.chaopraya.backend.repository;
 
 import com.chaopraya.backend.model.PaymentMethod;
+import com.chaopraya.backend.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.List;
+import org.springframework.stereotype.Repository;
 
-public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, String> {
-    List<PaymentMethod> findByUserId(String userId);
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Long> {
+    List<PaymentMethod> findByUser(User user);
+    
+    // เพิ่มเมธอดนี้
+    Optional<PaymentMethod> findByIdAndUser(Long id, User user);
+    
+    void deleteByIdAndUser(Long id, User user);
 }

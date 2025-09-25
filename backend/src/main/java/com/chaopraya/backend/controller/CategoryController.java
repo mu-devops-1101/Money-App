@@ -1,7 +1,9 @@
 package com.chaopraya.backend.controller;
 
 import com.chaopraya.backend.model.Category;
+import com.chaopraya.backend.model.User;
 import com.chaopraya.backend.service.CategoryService;
+import com.chaopraya.backend.service.UserService;
 import com.chaopraya.backend.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,27 +18,37 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
+    @Autowired
+    private UserService userService;
+
     @GetMapping
     public ResponseEntity<List<Category>> getAllCategories() {
-        String userId = SecurityUtils.getCurrentUserId();
-        List<Category> categories = categoryService.findByUserId(userId);
+        User currentUser = SecurityUtils.getCurrentUser(userService);
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        List<Category> categories = categoryService.findByUser(currentUser);
         return ResponseEntity.ok(categories);
     }
 
     @PostMapping
     public ResponseEntity<Category> addCategory(@RequestBody Category category) {
-        // **ต้องตั้งค่า user ใน category object ก่อน save**
-        String userId = SecurityUtils.getCurrentUserId();
-        // category.setUser(new User(userId, null, null)); // ตัวอย่างการเซ็ต userId
+        User currentUser = SecurityUtils.getCurrentUser(userService);
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        category.setUser(currentUser);
         Category newCategory = categoryService.save(category);
         return ResponseEntity.ok(newCategory);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable String id) {
-        // คุณอาจจะต้องเพิ่มเมธอด deleteByCategoryAndUserId ใน service
-        // เพื่อให้แน่ใจว่าผู้ใช้ลบได้เฉพาะของตัวเอง
-        categoryService.deleteById(id);
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        User currentUser = SecurityUtils.getCurrentUser(userService);
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        categoryService.deleteByIdAndUser(id, currentUser);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,79 +1,85 @@
 package com.chaopraya.backend.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import org.hibernate.annotations.GenericGenerator;
 
 @Entity
 public class Transaction {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private BigDecimal amount;
+    private String note;
+    private String type; // "income" or "expense"
+    private String location;
+    private LocalDateTime dateTime;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Enumerated(EnumType.STRING)
-    private TransactionType type; // ENUM: INCOME, EXPENSE
-
-    private double amount;
-    private String note;
-    private String location;
-    private LocalDateTime date;
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "payment_method_id")
     private PaymentMethod paymentMethod;
 
-    // Getters and Setters...
-    public String getId() {
+    public Transaction() {
+    }
+
+    public Long getId() {
         return id;
     }
-    
-    public void setId(String id) {
+
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 
-    public String getNote(){
+    public String getNote() {
         return note;
     }
 
-    public void setNote(String note){
+    public void setNote(String note) {
         this.note = note;
     }
-    
-    public String getLocation(){
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getLocation() {
         return location;
     }
 
-    public void setLocation(String location){
-        this.location=location;
+    public void setLocation(String location) {
+        this.location = location;
     }
 
-    public LocalDateTime getDate(){
-        return date;
+    public LocalDateTime getDateTime() {
+        return dateTime;
     }
 
-    public void setDate(LocalDateTime date){
-        this.date=date;
+    public void setDateTime(LocalDateTime dateTime) {
+        this.dateTime = dateTime;
     }
 
     public User getUser() {
-    return user;
+        return user;
     }
 
     public void setUser(User user) {
@@ -88,20 +94,11 @@ public class Transaction {
         this.category = category;
     }
 
-    public PaymentMethod getPaymentMethod(){
+    public PaymentMethod getPaymentMethod() {
         return paymentMethod;
     }
 
-    public void setPaymentMethod(PaymentMethod paymentMethod){ 
-        this.paymentMethod=paymentMethod;
+    public void setPaymentMethod(PaymentMethod paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
-
-    public TransactionType getType(){
-        return type;
-    }
-
-    
-
-
-
 }

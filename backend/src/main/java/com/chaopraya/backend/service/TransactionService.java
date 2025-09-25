@@ -1,101 +1,89 @@
 package com.chaopraya.backend.service;
 
-import com.chaopraya.backend.exception.ResourceNotFoundException;
 import com.chaopraya.backend.model.Transaction;
-import com.chaopraya.backend.model.TransactionType;
+import com.chaopraya.backend.model.User;
 import com.chaopraya.backend.repository.TransactionRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import jakarta.transaction.Transactional;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
 
     @Autowired
     private TransactionRepository transactionRepository;
+    
+    // Note: TransactionService ไม่ควรต้องเรียกใช้ UserRepository โดยตรง
+    // ควรให้ Controller จัดการดึง User object มาให้ Service
 
     public Transaction saveTransaction(Transaction transaction) {
         return transactionRepository.save(transaction);
     }
-
-    public List<Transaction> getMonthlyTransactions(String userId, int year, int month) {
-        LocalDateTime startOfMonth = LocalDateTime.of(year, month, 1, 0, 0);
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusSeconds(1);
-        return transactionRepository.findByUserIdAndDateBetween(userId, startOfMonth, endOfMonth);
+    
+    public List<Transaction> getAllTransactionsByUserId(User user) {
+        return transactionRepository.findByUser(user);
     }
 
-    public Optional<Transaction> getTransactionByIdAndUserId(String transactionId, String userId) {
-        return transactionRepository.findByIdAndUserId(transactionId, userId);
-    }
-
-    public List<Transaction> getAllTransactionsByUserId(String userId) {
-        return transactionRepository.findByUserId(userId);
-    }
-
-    public Transaction updateTransaction(Transaction updatedTransaction, String userId) {
-        return transactionRepository.findByIdAndUserId(updatedTransaction.getId(), userId)
-                .map(existingTransaction -> transactionRepository.save(updatedTransaction))
-                .orElseThrow(
-                        () -> new ResourceNotFoundException("Transaction not found or does not belong to the user."));
-    }
-
-    public void deleteTransactionByIdAndUserId(String transactionId, String userId) {
-        if (transactionRepository.findByIdAndUserId(transactionId, userId).isPresent()) {
-            transactionRepository.deleteById(transactionId);
-        } else {
-            throw new ResourceNotFoundException("Transaction not found or does not belong to the user.");
-        }
+    public Optional<Transaction> getTransactionByIdAndUser(Long id, User user) {
+        return transactionRepository.findByIdAndUser(id, user);
     }
     
     @Transactional
-    public Map<String, Object> getMonthlySummary(String userId, int year, int month) {
-        LocalDateTime startOfMonth = LocalDateTime.of(year, month, 1, 0, 0);
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusSeconds(1);
+    public void deleteByIdAndUser(Long id, User user) {
+        transactionRepository.deleteByIdAndUser(id, user);
+    }
+    
+    public List<Transaction> getMonthlyTransactions(User user, int year, int month) {
+        LocalDateTime start = LocalDateTime.of(year, month, 1, 0, 0);
+        LocalDateTime end = start.plusMonths(1).minusSeconds(1);
+        return transactionRepository.findByUserAndDateTimeBetween(user, start, end);
+    }
 
-        List<Transaction> transactions = transactionRepository.findByUserIdAndDateBetween(userId, startOfMonth,
-                endOfMonth);
+    public Map<String, Object> getMonthlySummary(User user, int year, int month) {
+        List<Transaction> transactions = getMonthlyTransactions(user, year, month);
 
-        double totalIncome = 0.0;
-        double totalExpense = 0.0;
-        Map<String, Double> categorySummary = new HashMap<>();
-        Map<String, Double> paymentMethodSummary = new HashMap<>();
+        BigDecimal totalIncome = transactions.stream()
+                .filter(t -> "income".equalsIgnoreCase(t.getType()))
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        for (Transaction transaction : transactions) {
-            if (transaction.getType() == TransactionType.INCOME) {
-                totalIncome += transaction.getAmount();
-            } else {
-                totalExpense += transaction.getAmount();
-            }
+        BigDecimal totalExpenses = transactions.stream()
+                .filter(t -> "expense".equalsIgnoreCase(t.getType()))
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            // สรุปยอดตามหมวดหมู่ (ถ้ามี)
-            if (transaction.getCategory() != null) {
-                String categoryName = transaction.getCategory().getName();
-                categorySummary.put(categoryName,
-                        categorySummary.getOrDefault(categoryName, 0.0) + transaction.getAmount());
-            }
+        BigDecimal balance = totalIncome.subtract(totalExpenses);
 
-            // สรุปยอดตามวิธีการชำระเงิน (ถ้ามี)
-            if (transaction.getPaymentMethod() != null) {
-                String paymentMethodName = transaction.getPaymentMethod().getName();
-                paymentMethodSummary.put(paymentMethodName,
-                        paymentMethodSummary.getOrDefault(paymentMethodName, 0.0) + transaction.getAmount());
-            }
-        }
+        Map<String, Double> categorySummary = transactions.stream()
+                .filter(t -> t.getCategory() != null)
+                .collect(Collectors.groupingBy(
+                        t -> t.getCategory().getName(),
+                        Collectors.summingDouble(t -> t.getAmount().doubleValue())
+                ));
 
-        double balance = totalIncome - totalExpense;
-
+        Map<String, Double> paymentMethodSummary = transactions.stream()
+                .filter(t -> t.getPaymentMethod() != null)
+                .collect(Collectors.groupingBy(
+                        t -> t.getPaymentMethod().getName(),
+                        Collectors.summingDouble(t -> t.getAmount().doubleValue())
+                ));
+        
+        // แก้ไขส่วนนี้เพื่อแก้ปัญหา Type Mismatch
         Map<String, Object> summary = new HashMap<>();
         summary.put("totalIncome", totalIncome);
-        summary.put("totalExpense", totalExpense);
-        summary.put("balance", balance);
+        summary.put("totalExpenses", totalExpenses);
+        summary.put("balance", balance.doubleValue());
         summary.put("categorySummary", categorySummary);
         summary.put("paymentMethodSummary", paymentMethodSummary);
-
+        
         return summary;
     }
 }

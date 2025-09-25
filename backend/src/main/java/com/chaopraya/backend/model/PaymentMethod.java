@@ -1,42 +1,59 @@
 package com.chaopraya.backend.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import org.hibernate.annotations.GenericGenerator;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 public class PaymentMethod {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String name;
-    private String userId;
 
-    public String getId() {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @JsonBackReference
+    private User user;
+
+    @OneToMany(mappedBy = "paymentMethod", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Transaction> transactions;
+    
+    // Constructors
+    public PaymentMethod() {
+    }
+    
+    // เพิ่ม getter และ setter สำหรับ id
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
+    // Getters and Setters ที่มีอยู่แล้ว
     public String getName() {
-        return id;
+        return name;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    public String getuserId(){
-        return userId;
+    public User getUser() {
+        return user;
     }
 
-    public void setUser_id(String userId){
-        this.userId=userId;
+    public void setUser(User user) {
+        this.user = user;
     }
 
+    public List<Transaction> getTransactions() {
+        return transactions;
+    }
 
+    public void setTransactions(List<Transaction> transactions) {
+        this.transactions = transactions;
+    }
 }
