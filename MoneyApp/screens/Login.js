@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 
-export default function Login() {
+export default function Login({ navigation }) {   // ← อย่าลืมใส่ navigation มาตรงนี้
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     const handleSubmit = () => {
         console.log("Login attempt:", { email, password });
+        navigation.navigate("Home");   // ← ไปหน้า Home
     };
 
     const handleForgotPassword = () => {
@@ -16,7 +17,7 @@ export default function Login() {
 
     return (
         <LinearGradient
-            colors={['#363636', '#5ac5a9']}
+            colors={["#363636", "#5ac5a9"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.container}
