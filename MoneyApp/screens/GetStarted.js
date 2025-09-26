@@ -1,22 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
-import { LinearGradient } from "expo-linear-gradient"; // ต้องติดตั้ง expo-linear-gradient
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function GetStarted({ navigation }) {
-    const [isSignUpHovered, setIsSignUpHovered] = useState(false);
-    const [isLogInHovered, setIsLogInHovered] = useState(false);
 
-    const handleSignUpClick = () => {
-        console.log("Sign up clicked");
-        // navigation.navigate("SignUp"); // TODO: ถ้ามีหน้า SignUp
-    };
-
-    const handleLogInClick = () => {
-        console.log("Log in clicked");
-        navigation.navigate("Login"); // เชื่อมไปหน้า Login
-    };
-
-    // <<< Return ต้องอยู่ในฟังก์ชันหลัก ไม่ใช่นอก function >>>
     return (
         <LinearGradient
             colors={['#363636', '#5ac5a9']}
@@ -24,35 +11,25 @@ export default function GetStarted({ navigation }) {
             end={{ x: 1, y: 1 }}
             style={styles.container}
         >
+            {/* โลโก้ */}
             <Image
                 source={require("../assets/image-4.png")}
                 style={styles.logo}
                 resizeMode="contain"
             />
 
+            {/* ปุ่มเลือก */}
             <View style={styles.nav}>
-                {/* Sign Up */}
                 <TouchableOpacity
-                    style={[
-                        styles.button,
-                        isSignUpHovered ? styles.buttonHover : styles.buttonNormal,
-                    ]}
-                    onPress={handleSignUpClick}
-                    onPressIn={() => setIsSignUpHovered(true)}
-                    onPressOut={() => setIsSignUpHovered(false)}
+                    style={styles.button}
+                    onPress={() => navigation.navigate("Register")}
                 >
                     <Text style={styles.buttonText}>SIGN UP</Text>
                 </TouchableOpacity>
 
-                {/* Log In */}
                 <TouchableOpacity
-                    style={[
-                        styles.button,
-                        isLogInHovered ? styles.buttonHover : styles.buttonNormal,
-                    ]}
-                    onPress={handleLogInClick}
-                    onPressIn={() => setIsLogInHovered(true)}
-                    onPressOut={() => setIsLogInHovered(false)}
+                    style={styles.button}
+                    onPress={() => navigation.navigate("Login")}
                 >
                     <Text style={styles.buttonText}>LOG IN</Text>
                 </TouchableOpacity>
@@ -71,7 +48,7 @@ const styles = StyleSheet.create({
     logo: {
         width: 250,
         height: 250,
-        marginBottom: 50,
+        marginBottom: 60,
     },
     nav: {
         width: "100%",
@@ -79,26 +56,21 @@ const styles = StyleSheet.create({
         gap: 20,
     },
     button: {
-        width: 300,
-        height: 70,
+        width: 280,
+        height: 60,
         borderRadius: 28,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: "#fff",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.2,
         shadowRadius: 4,
-        elevation: 5, // เงาสำหรับ Android
-    },
-    buttonNormal: {
-        backgroundColor: "#FFFFFF",
-    },
-    buttonHover: {
-        backgroundColor: "#F5F5F5",
+        elevation: 5,
     },
     buttonText: {
-        fontSize: 20,
-        color: "#000000",
-        fontWeight: "500",
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#000",
     },
 });
