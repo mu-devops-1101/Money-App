@@ -1,109 +1,218 @@
-import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
-import { Frame4 } from "./Frame4";
-import { NavigationMenuSection } from "./NavigationMenuSection";
-import { TransactionFormSection } from "./TransactionFormSection";
+import React, { useState } from 'react';
+import {
+    View,
+    Text,
+    Image,
+    StyleSheet,
+    TouchableOpacity,
+    SafeAreaView,
+    TextInput,
+    Alert,
+    Platform,
+    ScrollView,
+    KeyboardAvoidingView
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
-// แนะนำเก็บภาพในโฟลเดอร์ assets
-import chevronLeft from "../assets/chevron-left.jpg";
-import image7 from "../assets/image-4.png";
-import image from "../assets/image.png";
+// --- Import รูปภาพจาก assets (แนะนำให้ใช้ .png จะดีกว่า .jpg) ---
+import chevronLeft from '../assets/chevron-left.jpg';
 
-export const AddExIn = () => {
+const COLORS = {
+    primary: '#5ac5a9',
+    dark: '#363636',
+    white: '#FFFFFF',
+    text: '#000000',
+    inputBg: 'rgba(255, 255, 255, 0.8)',
+    income: '#2ecc71',
+    expense: '#e74c3c',
+};
+
+// เปลี่ยนชื่อ Component ให้นิยมใช้ (ตัวพิมพ์ใหญ่ทั้งหมด)
+export default function AddTransactionScreen({ navigation }) {
+    // --- Form States ---
+    const [transactionType, setTransactionType] = useState('expense');
+    const [amount, setAmount] = useState('');
+    const [category, setCategory] = useState('');
+    const [note, setNote] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    // --- Save Handler ---
+    const handleSave = () => {
+        if (!amount || !category) {
+            Alert.alert('Incomplete Data', 'Please enter an amount and category.');
+            return;
+        }
+        setLoading(true);
+        console.log({
+            type: transactionType,
+            amount: parseFloat(amount),
+            category: category,
+            note: note,
+        });
+        // Simulate API call
+        setTimeout(() => {
+            setLoading(false);
+            Alert.alert('Success!', `Transaction saved:\nAmount: ${amount}\nCategory: ${category}`);
+            navigation.goBack();
+        }, 1000);
+    };
+
     return (
-        <View style={styles.container}>
-            {/* Background Gradient Shape */}
-            <View style={styles.bgShape} />
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+            <LinearGradient
+                colors={[COLORS.white, '#DEF9F2', COLORS.primary]}
+                style={styles.container}
+            >
+                <SafeAreaView style={styles.safeArea}>
+                    <ScrollView contentContainerStyle={styles.scrollViewContent}>
 
-            {/* Header */}
-            <View style={styles.header}>
-                <Image source={chevronLeft} style={styles.icon} resizeMode="contain" />
-                <Text style={styles.headerTitle}>My Wallet</Text>
-                <Frame4 />
-            </View>
+                        {/* --- ส่วน Header --- */}
+                        <View style={styles.header}>
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
+                                <Image source={chevronLeft} style={styles.headerIcon} />
+                            </TouchableOpacity>
+                            <Text style={styles.headerTitle}>Add Transaction</Text>
+                            <View style={{ width: 30 }} />
+                        </View>
 
-            {/* Navigation Menu Section */}
-            <NavigationMenuSection />
+                        {/* --- Income/Expense Toggle --- */}
+                        <View style={styles.typeSelectorContainer}>
+                            <TouchableOpacity
+                                style={[styles.typeButton, transactionType === 'expense' && styles.typeButtonActiveExpense]}
+                                onPress={() => setTransactionType('expense')}
+                            >
+                                <Text style={[styles.typeButtonText, transactionType === 'expense' && styles.typeButtonTextActive]}>Expense</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.typeButton, transactionType === 'income' && styles.typeButtonActiveIncome]}
+                                onPress={() => setTransactionType('income')}
+                            >
+                                <Text style={[styles.typeButtonText, transactionType === 'income' && styles.typeButtonTextActive]}>Income</Text>
+                            </TouchableOpacity>
+                        </View>
 
-            {/* Transaction Form Section */}
-            <TransactionFormSection />
+                        {/* --- Form Section --- */}
+                        <View style={styles.formContainer}>
+                            <View style={styles.labelContainer}>
+                                <Text style={styles.labelText}>Amount</Text>
+                            </View>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="0.00"
+                                placeholderTextColor="#999"
+                                keyboardType="numeric"
+                                value={amount}
+                                onChangeText={setAmount}
+                            />
 
-            {/* Decorative Image */}
-            <Image source={image7} style={styles.decorImage} resizeMode="contain" />
+                            <View style={styles.labelContainer}>
+                                <Text style={styles.labelText}>Category</Text>
+                            </View>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g., Food, Transport"
+                                placeholderTextColor="#999"
+                                value={category}
+                                onChangeText={setCategory}
+                            />
 
-            {/* Overlay Icon */}
-            {/*<Image source={image} style={styles.overlayIcon} resizeMode="contain" />*/}
+                            <View style={styles.labelContainer}>
+                                <Text style={styles.labelText}>Note (Optional)</Text>
+                            </View>
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="e.g., Lunch with friends"
+                                placeholderTextColor="#999"
+                                value={note}
+                                onChangeText={setNote}
+                                multiline={true}
+                            />
+                        </View>
 
-            {/* Page Title */}
-            <Text style={styles.pageTitle}>Add New Transaction</Text>
-        </View>
+                        {/* --- Save Button --- */}
+                        <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
+                            <Text style={styles.saveButtonText}>{loading ? 'SAVING...' : 'SAVE TRANSACTION'}</Text>
+                        </TouchableOpacity>
+
+                    </ScrollView>
+                </SafeAreaView>
+            </LinearGradient>
+        </KeyboardAvoidingView>
     );
 };
 
+// --- Styles ---
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        minWidth: 390,
-        minHeight: 844,
-        backgroundColor: "#FFFFFF",
-        alignItems: "center",
-        justifyContent: "flex-start",
+    container: { flex: 1 },
+    safeArea: { flex: 1 },
+    scrollViewContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
+    header: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 20,
+        marginBottom: 20,
     },
-    bgShape: {
-        position: "absolute",
-        top: -375,
-        left: -272,
-        width: 761,
-        height: 484,
-        borderRadius: 243,
-        transform: [{ rotate: "-178.9deg" }],
+    headerButton: { padding: 5 },
+    headerIcon: { width: 30, height: 30 },
+    headerTitle: { fontWeight: 'bold', color: COLORS.dark, fontSize: 22 },
+    typeSelectorContainer: {
+        flexDirection: 'row',
+        width: '100%',
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        borderRadius: 25,
+        marginBottom: 30,
+    },
+    typeButton: { flex: 1, paddingVertical: 15, borderRadius: 25, alignItems: 'center' },
+    typeButtonActiveExpense: { backgroundColor: COLORS.expense },
+    typeButtonActiveIncome: { backgroundColor: COLORS.income },
+    // ✅ แก้ไข fontWeight เป็น string
+    typeButtonText: { color: COLORS.dark, fontSize: 16, fontWeight: '600' },
+    typeButtonTextActive: { color: COLORS.white },
+    formContainer: {
+        width: '100%',
+        backgroundColor: COLORS.inputBg,
+        borderRadius: 20,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 1,
+        marginBottom: 30,
+    },
+    labelContainer: {
+        marginBottom: 8, // Layout style อยู่ที่ View ที่ครอบ
+    },
+    // ✅ แก้ไข fontWeight เป็น string และเอา layout style ออก
+    labelText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+    },
+    input: {
+        backgroundColor: COLORS.white,
+        borderRadius: 10,
+        padding: 15,
+        fontSize: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        color: '#000',
+    },
+    textArea: { height: 100, textAlignVertical: 'top' },
+    saveButton: {
+        width: '100%',
+        backgroundColor: COLORS.dark,
+        paddingVertical: 18,
+        borderRadius: 30,
+        alignItems: 'center',
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        backgroundColor: "linear-gradient(295deg, #363636 7%, #5ac5a9 100%)",
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
     },
-    header: {
-        width: "90%",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginTop: 40,
-        paddingHorizontal: 10,
-    },
-    icon: {
-        width: 30,
-        height: 30,
-    },
-    headerTitle: {
-        fontFamily: "Inter-Bold",
-        fontWeight: "700",
-        fontSize: 24,
-        color: "#f2f2f2",
-    },
-    decorImage: {
-        position: "absolute",
-        top: 0,
-        left: "35%",
-        width: 127,
-        height: 116,
-    },
-    overlayIcon: {
-        position: "absolute",
-        top: 40,
-        left: 50,
-        width: 30,
-        height: 30,
-    },
-    pageTitle: {
-        position: "absolute",
-        top: 157,
-        left: "20%",
-        width: "60%",
-        fontFamily: "DM_Sans-ExtraBold",
-        fontWeight: "800",
-        fontSize: 32,
-        textAlign: "center",
-        color: "#000",
-    },
+    saveButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
 });

@@ -44,3 +44,14 @@ export const addCategory = (category) =>
 
 export const addPaymentMethod = (paymentMethod) =>
     request(`${BASE_URL}/payment-methods`, "POST", paymentMethod, true);
+
+let transactions = [];
+
+export const mockAddTransaction = async (transaction) => {
+    transactions.push(transaction);
+    return { success: true, message: "Transaction added", data: transaction };
+};
+
+export const mockGetTransactions = async () => {
+    return transactions;
+};
