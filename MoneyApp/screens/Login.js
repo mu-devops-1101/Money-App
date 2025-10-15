@@ -7,125 +7,231 @@ import {
     TextInput,
     Text,
     TouchableOpacity,
-    Alert
+    Alert,
+    StyleSheet,
+    Platform // เพิ่ม Platform เพื่อจัดการเงา
 } from "react-native";
-import { loginUser } from "../services/api"; // ดึงจาก api.js
+import { LinearGradient } from "expo-linear-gradient";
+import { loginUser } from "../services/api";
+
+// 1. นำเข้าสีจากที่เดียวกันกับ GetStarted หรือกำหนดตรงนี้
+// (แนะนำให้สร้างไฟล์ centralize colors เช่น constants/colors.js แล้ว import มาใช้)
+const COLORS = {
+    primary: '#5ac5a9',
+    dark: '#363636',
+    white: '#FFFFFF',
+    lightGrey: '#F2F2F2',
+    textGrey: '#999999', // สีเทาสำหรับ placeholder/ข้อความ
+};
 
 export default function Login({ navigation }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false); // เพิ่ม state สำหรับ loading
 
     const handleLogin = async () => {
+        setLoading(true); // เริ่ม loading
         try {
             if (!email || !password) {
-                Alert.alert("Error", "Please enter email and password");
+                Alert.alert("Error", "Please enter email and password.");
                 return;
             }
 
             const res = await loginUser({ email, password });
 
-            if (res.status === 200) {
+            // 2. ปรับปรุงการจัดการ response จาก Backend
+            // ปกติแล้ว login สำเร็จ Backend จะส่ง token กลับมา
+            if (res.status === 200 && res.data && res.data.token) {
+                // สมมติว่า Backend ส่ง token มาใน res.data.token
+                // คุณควรจะบันทึก token นี้ไว้ใน AsyncStorage/localStorage
+                // เช่น await AsyncStorage.setItem('userToken', res.data.token);
                 Alert.alert("Success", "Login successful!");
-                navigation.navigate("Home"); // ไปหน้า Home.js
+                navigation.navigate("Home");
             } else {
-                Alert.alert("Error", res.data.message || "Login failed");
+                // ถ้ามีข้อความ error จาก Backend ให้แสดงข้อความนั้น
+                Alert.alert("Error", res.data.message || "Login failed. Please check your credentials.");
             }
         } catch (err) {
-            Alert.alert("Error", "Cannot connect to server");
+            console.error("Login error:", err); // Log error เต็มๆ เพื่อ debug
+            Alert.alert("Error", "Failed to connect to the server or an unexpected error occurred.");
+        } finally {
+            setLoading(false); // สิ้นสุด loading ไม่ว่าจะสำเร็จหรือ error
         }
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-            <ScrollView style={{ flex: 1 }}>
-                <View style={{ marginTop: 21, marginBottom: 358 }}>
-                    <View style={{ marginBottom: 8, marginHorizontal: 48 }}>
+        <LinearGradient
+            colors={[COLORS.dark, COLORS.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientContainer}
+        >
+            <SafeAreaView style={styles.safeArea}>
+                <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                    <View style={styles.contentWrapper}>
+                        {/* โลโก้ */}
                         <Image
                             source={{
-                                uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/GwyeDrebHg/xcnz10v3_expires_30_days.png"
+                                uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/GwyeDrebHg/xcnz10v3_expires_30_days.png" // เปลี่ยนเป็นรูปใน assets ของคุณดีกว่า
                             }}
-                            resizeMode={"stretch"}
-                            style={{
-                                height: 236,
-                                marginHorizontal: 29
-                            }}
+                            resizeMode={"contain"} // ใช้ 'contain' เพื่อให้รูปภาพไม่ถูกบีบ
+                            style={styles.logo}
                         />
-                        <View>
+
+                        {/* หัวข้อ */}
+                        <Text style={styles.title}>Welcome Back!</Text>
+                        <Text style={styles.subtitle}>Sign in to continue to your account.</Text>
+
+                        {/* Input Fields */}
+                        <View style={styles.inputContainer}>
                             <TextInput
-                                placeholder="Email"
+                                placeholder="Email Address"
+                                placeholderTextColor={COLORS.textGrey}
                                 value={email}
                                 onChangeText={setEmail}
-                                style={{
-                                    color: "#000000",
-                                    fontSize: 12,
-                                    marginBottom: 19,
-                                    backgroundColor: "#F4F4F833",
-                                    borderColor: "#F4F4F8",
-                                    borderRadius: 16,
-                                    borderWidth: 1,
-                                    paddingVertical: 17,
-                                    paddingLeft: 9,
-                                    paddingRight: 18
-                                }}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                style={styles.textInput}
                             />
                             <TextInput
                                 placeholder="Password"
+                                placeholderTextColor={COLORS.textGrey}
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry
-                                style={{
-                                    color: "#000000",
-                                    fontSize: 12,
-                                    backgroundColor: "#F4F4F833",
-                                    borderColor: "#F4F4F8",
-                                    borderRadius: 16,
-                                    borderWidth: 1,
-                                    paddingVertical: 17,
-                                    paddingLeft: 9,
-                                    paddingRight: 18
-                                }}
+                                style={styles.textInput}
                             />
                         </View>
-                    </View>
 
-                    <Text
-                        style={{
-                            color: "#000000",
-                            fontSize: 11,
-                            fontWeight: "bold",
-                            marginBottom: 22,
-                            marginLeft: 54
-                        }}
-                    >
-                        forgot password?
-                    </Text>
+                        {/* Forgot password */}
+                        <TouchableOpacity style={styles.forgotPasswordButton}>
+                            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={{
-                            alignItems: "center",
-                            backgroundColor: "#FFFFFF",
-                            borderRadius: 28,
-                            paddingVertical: 23,
-                            marginHorizontal: 45,
-                            shadowColor: "#00000040",
-                            shadowOpacity: 0.3,
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowRadius: 8,
-                            elevation: 8
-                        }}
-                        onPress={handleLogin}
-                    >
-                        <Text
-                            style={{
-                                color: "#000000",
-                                fontSize: 20
-                            }}
+                        {/* Login Button */}
+                        <TouchableOpacity
+                            style={styles.loginButton}
+                            onPress={handleLogin}
+                            disabled={loading} // ปิดการใช้งานปุ่มขณะโหลด
                         >
-                            LOG IN
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+                            <Text style={styles.loginButtonText}>
+                                {loading ? "Logging in..." : "LOG IN"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Sign up prompt */}
+                        <View style={styles.signUpPrompt}>
+                            <Text style={styles.signUpText}>Don't have an account? </Text>
+                            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+                                <Text style={styles.signUpLink}>Sign Up</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
+        </LinearGradient>
     );
 }
+
+const styles = StyleSheet.create({
+    gradientContainer: {
+        flex: 1,
+    },
+    safeArea: {
+        flex: 1,
+    },
+    scrollViewContent: {
+        flexGrow: 1, // ทำให้ ScrollView สามารถขยายเต็มพื้นที่ได้
+        justifyContent: 'center', // จัดเนื้อหาให้อยู่ตรงกลางแนวตั้ง
+        alignItems: 'center',
+        paddingVertical: 40,
+        paddingHorizontal: 25,
+    },
+    contentWrapper: {
+        width: '100%',
+        maxWidth: 400, // จำกัดความกว้างสูงสุดสำหรับหน้าจอใหญ่
+        alignItems: 'center',
+    },
+    logo: {
+        width: 200,
+        height: 200,
+        marginBottom: 30, // ลดระยะห่างด้านล่างของโลโก้
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: COLORS.white,
+        marginBottom: 10,
+    },
+    subtitle: {
+        fontSize: 16,
+        color: COLORS.lightGrey,
+        marginBottom: 40,
+        textAlign: 'center',
+    },
+    inputContainer: {
+        width: '100%',
+        marginBottom: 20,
+    },
+    textInput: {
+        backgroundColor: `${COLORS.white}33`, // ใช้ white ที่มีความโปร่งใส
+        color: COLORS.white, // สีของข้อความใน input
+        fontSize: 16,
+        borderRadius: 12,
+        paddingVertical: Platform.OS === 'ios' ? 15 : 12, // ปรับ padding ตาม OS
+        paddingHorizontal: 15,
+        marginBottom: 15,
+        borderWidth: 1,
+        borderColor: `${COLORS.white}66`, // สีขอบ input
+    },
+    forgotPasswordButton: {
+        alignSelf: 'flex-end', // จัดให้อยู่ชิดขวา
+        marginBottom: 30,
+    },
+    forgotPasswordText: {
+        color: COLORS.white,
+        fontSize: 13,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
+    },
+    loginButton: {
+        width: "100%",
+        height: 55,
+        backgroundColor: COLORS.white,
+        borderRadius: 28,
+        justifyContent: "center",
+        alignItems: "center",
+        ...Platform.select({ // เพิ่มเงา
+            ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 5,
+            },
+        }),
+        marginBottom: 20,
+    },
+    loginButtonText: {
+        color: COLORS.dark, // สีตัวอักษรของปุ่ม login
+        fontSize: 18,
+        fontWeight: "bold",
+    },
+    signUpPrompt: {
+        flexDirection: 'row',
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    signUpText: {
+        color: COLORS.lightGrey,
+        fontSize: 14,
+    },
+    signUpLink: {
+        color: COLORS.white,
+        fontSize: 14,
+        fontWeight: 'bold',
+        textDecorationLine: 'underline',
+    },
+});
