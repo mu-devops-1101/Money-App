@@ -7,6 +7,13 @@ public class RegisterRequest {
 
     public RegisterRequest() {
     }
+    
+    // **เพิ่ม Constructor ใหม่สำหรับ Test**
+    public RegisterRequest(String username, String password) {
+        this.username = username;
+        this.password = password;
+        this.role = "ROLE_USER"; // กำหนดค่า default role ได้ที่นี่
+    }
 
     public String getUsername() {
         return username;
