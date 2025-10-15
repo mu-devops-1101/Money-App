@@ -18,11 +18,11 @@ import java.util.stream.Collectors;
 @Service
 public class TransactionService {
 
-    @Autowired
-    private TransactionRepository transactionRepository;
-    
-    // Note: TransactionService ไม่ควรต้องเรียกใช้ UserRepository โดยตรง
-    // ควรให้ Controller จัดการดึง User object มาให้ Service
+    private final TransactionRepository transactionRepository;
+
+    public TransactionService(TransactionRepository transactionRepository) {
+        this.transactionRepository=transactionRepository;
+    }
 
     public Transaction saveTransaction(Transaction transaction) {
         return transactionRepository.save(transaction);
