@@ -16,6 +16,7 @@
     <description>Backend API for Chaopraya App</description>
     <properties>
         <java.version>21</java.version> <!-- ใช้ Java 21 ตามที่ระบุ -->
+        <karate.version>1.4.1</karate.version> <!-- เวอร์ชัน Karate ล่าสุด -->
     </properties>
     <dependencies>
         <!-- Core and Data Access Dependencies -->
@@ -68,6 +69,13 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- E2E test ja-->
+        <dependency>
+            <groupId>com.intuit.karate</groupId>
+            <artifactId>karate-junit5</artifactId>
+            <version>${karate.version}</version>
             <scope>test</scope>
         </dependency>
 

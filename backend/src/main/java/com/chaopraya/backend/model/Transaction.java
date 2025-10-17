@@ -1,5 +1,6 @@
 package com.chaopraya.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,16 +16,22 @@ public class Transaction {
     private String location;
     private LocalDateTime dateTime;
 
-    @ManyToOne
+    // ✅ ปรับเป็น EAGER Loading และป้องกัน JSON Recursion
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
+    @JsonIgnoreProperties({"categories", "paymentMethods", "transactions", "hibernateLazyInitializer", "handler"})
     private User user;
 
-    @ManyToOne
+    // ✅ ปรับเป็น EAGER Loading และป้องกัน JSON Recursion
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
+    @JsonIgnoreProperties({"user", "transactions", "hibernateLazyInitializer", "handler"})
     private Category category;
 
-    @ManyToOne
+    // ✅ ปรับเป็น EAGER Loading และป้องกัน JSON Recursion
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "payment_method_id")
+    @JsonIgnoreProperties({"user", "transactions", "hibernateLazyInitializer", "handler"})
     private PaymentMethod paymentMethod;
 
     public Transaction() {
