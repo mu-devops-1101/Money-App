@@ -30,32 +30,39 @@ export default function Login({ navigation }) {
     const [loading, setLoading] = useState(false); // เพิ่ม state สำหรับ loading
 
     const handleLogin = async () => {
-        setLoading(true); // เริ่ม loading
+        // ... (ส่วนตรวจสอบข้อมูล) ...
+
+        setLoading(true);
         try {
-            if (!email || !password) {
-                Alert.alert("Error", "Please enter email and password.");
-                return;
-            }
+            const credentials = { email, password };
 
-            const res = await loginUser({ email, password });
+            const res = await loginUser(credentials);
 
-            // 2. ปรับปรุงการจัดการ response จาก Backend
-            // ปกติแล้ว login สำเร็จ Backend จะส่ง token กลับมา
-            if (res.status === 200 && res.data && res.data.token) {
-                // สมมติว่า Backend ส่ง token มาใน res.data.token
-                // คุณควรจะบันทึก token นี้ไว้ใน AsyncStorage/localStorage
-                // เช่น await AsyncStorage.setItem('userToken', res.data.token);
-                Alert.alert("Success", "Login successful!");
-                navigation.navigate("Home");
+            // 1. ตรวจสอบสถานะ (Login สำเร็จคาดหวัง 200 OK)
+            if (res.status === 200) {
+                // *** สำคัญมาก: ต้องบันทึก Token ที่ Backend ส่งกลับมา ***
+                const token = res.data.token; // สมมติว่า Backend ส่ง token มาใน 'token' field
+
+                if(token) {
+                    // 2. บันทึก Token ใน API Service เพื่อใช้กับ API อื่นๆ
+                    // setToken(token); // ต้องสร้าง setToken ใน api.js
+
+                    Alert.alert("Success", "Login successful!");
+                    // 3. สั่งนำทาง
+                    navigation.navigate("Home");
+                } else {
+                    Alert.alert("Error", "Login failed: Missing token.");
+                }
             } else {
-                // ถ้ามีข้อความ error จาก Backend ให้แสดงข้อความนั้น
-                Alert.alert("Error", res.data.message || "Login failed. Please check your credentials.");
+                // กรณี Backend ตอบกลับมาด้วย status อื่นที่ไม่ใช่ 200
+                Alert.alert("Error", res.data.message || "Login failed.");
             }
         } catch (err) {
-            console.error("Login error:", err); // Log error เต็มๆ เพื่อ debug
-            Alert.alert("Error", "Failed to connect to the server or an unexpected error occurred.");
+            // จัดการ Network Error หรือ 4xx/5xx status codes
+            const errorMessage = err.response?.data?.message || "Cannot connect to server or invalid credentials.";
+            Alert.alert("Error", errorMessage);
         } finally {
-            setLoading(false); // สิ้นสุด loading ไม่ว่าจะสำเร็จหรือ error
+            setLoading(false);
         }
     };
 

@@ -11,38 +11,41 @@ import {
 } from "react-native";
 import { registerUser } from "../services/api"; // ดึงจาก api.js
 
-export default function Register({ navigation }) {
+    export default function Register({ navigation }) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [email, setEmail] = useState("");
 
-    const handleRegister = async () => {
-        if (!username || !password || !confirmPassword || !email) {
-            Alert.alert("Error", "Please fill in all fields");
-            return;
-        }
+        const handleRegister = async () => {
+            // ... (ส่วนตรวจสอบข้อมูล) ...
 
-        if (password !== confirmPassword) {
-            Alert.alert("Error", "Passwords do not match");
-            return;
-        }
+            setLoading(true);
+            try {
+                const userData = { username, password, email };
 
-        try {
-            const res = await registerUser({ username, password, email });
+                // --- FIX: ตรงนี้คือจุดรับ response จาก axios ---
+                const res = await registerUser(userData);
 
-            if (res.status === 201) {
-                Alert.alert("Success", "Registration successful!");
-                navigation.navigate("Login"); // กลับไปหน้า Login
-            } else {
-                Alert.alert("Error", res.data.message || "Registration failed");
+                // 1. ตรวจสอบสถานะ (ใช้ res.status)
+                if (res.status === 201) { // 201 คือสถานะที่ Backend ส่งกลับมาเมื่อลงทะเบียนสำเร็จ
+                    Alert.alert("Success", "Registration successful! Please log in.");
+                    // 2. สั่งนำทาง
+                    navigation.navigate("Login");
+                } else {
+                    // 3. จัดการ Error (ใช้ res.data.message)
+                    Alert.alert("Error", res.data.message || "Registration failed. Please try again.");
+                }
+            } catch (err) {
+                // 4. จัดการ Network Error หรือ 4xx/5xx status codes
+                const errorMessage = err.response?.data?.message || "Cannot connect to server or registration failed.";
+                Alert.alert("Error", errorMessage);
+            } finally {
+                setLoading(false);
             }
-        } catch (err) {
-            Alert.alert("Error", "Cannot connect to server");
-        }
-    };
+        };
 
-    return (
+        return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
             <ScrollView style={{ flex: 1, paddingHorizontal: 45 }}>
                 <View
