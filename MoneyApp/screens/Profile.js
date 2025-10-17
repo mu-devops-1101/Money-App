@@ -1,174 +1,177 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import blue from "./blue.svg";
-import chevronLeft from "./chevron-left.png";
-import image from "./image.svg";
-import line12 from "./line-1-2.svg";
-import line13 from "./line-1-3.svg";
-import line1 from "./line-1.svg";
-import logOut1 from "./log-out-1.svg";
-import profileImage from "./profile-image.png";
-import purple from "./purple.svg";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
-export const Profile = (): JSX.Element => {
-    const [profileData] = useState({
-        username: "Wednesday_Addams",
-        firstName: "Wednesday",
-        lastName: "Addams",
-        dateOfBirth: "20-12-1990",
-        displayName: "Wednesday A.",
-        status: "Online",
-        isOnline: true,
-    });
+export default function Profile({ navigation }) {
+  const [profileData] = useState({
+    username: "Wednesday_Addams",
+    firstName: "Wednesday",
+    lastName: "Addams",
+    dateOfBirth: "20-12-1990",
+    displayName: "Wednesday A.",
+    status: "Online",
+    isOnline: true,
+  });
 
-    const profileFields = [
-        {
-            label: "Username",
-            value: profileData.username,
-            lineImage: line1,
-        },
-        {
-            label: "First Name",
-            value: profileData.firstName,
-            lineImage: image,
-        },
-        {
-            label: "Last Name",
-            value: profileData.lastName,
-            lineImage: line12,
-        },
-        {
-            label: "Date of Birth",
-            value: profileData.dateOfBirth,
-            lineImage: line13,
-        },
-    ];
+  const handleLogout = () => {
+    console.log("Logging out...");
+  };
 
-    const handleLogout = () => {
-        // Logout functionality would be implemented here
-        console.log("Logging out...");
-    };
+  const handleBackNavigation = () => {
+    navigation.goBack();
+  };
 
-    const handleBackNavigation = () => {
-        // Back navigation functionality would be implemented here
-        console.log("Navigating back...");
-    };
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <LinearGradient colors={["#FFFFFF", "#B2EED9"]} style={styles.container}>
+        {/* ปุ่มย้อนกลับ */}
+        <TouchableOpacity onPress={handleBackNavigation} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={28} color="#333" />
+        </TouchableOpacity>
 
-    return (
-        <main className="bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(222,249,242,0.8)_44%,rgba(90,197,169,1)_100%)] w-full min-w-[390px] min-h-[844px] relative">
-            <img
-                className="absolute top-0 left-[184px] w-[206px] h-[262px]"
-                alt=""
-                src={purple}
-                role="presentation"
+        {/* หัวข้อ */}
+        <Text style={styles.header}>Profile</Text>
+
+        {/* ส่วนรูปโปรไฟล์ */}
+        <View style={styles.profileSection}>
+          <View style={{ position: "relative" }}>
+            <Image
+              source={require("../assets/Profile-image.png")}
+              style={styles.profileImage}
             />
+            {profileData.isOnline && <View style={styles.onlineDot} />}
+          </View>
+          <View style={{ marginLeft: 16 }}>
+            <Text style={styles.displayName}>{profileData.displayName}</Text>
+            <Text style={styles.status}>{profileData.status}</Text>
+          </View>
+        </View>
 
-            <img
-                className="absolute top-0 left-[235px] w-[155px] h-[234px]"
-                alt=""
-                src={blue}
-                role="presentation"
-            />
+        {/* ส่วนข้อมูล */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Username</Text>
+            <Text style={styles.value}>{profileData.username}</Text>
+          </View>
 
-            <header className="absolute top-[39px] left-6">
-                <button
-                    onClick={handleBackNavigation}
-                    className="relative w-[30px] h-[30px] cursor-pointer"
-                    aria-label="Go back"
-                >
-                    <img className="w-full h-full" alt="Back" src={chevronLeft} />
-                </button>
-            </header>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>First Name</Text>
+            <Text style={styles.value}>{profileData.firstName}</Text>
+          </View>
 
-            <h1 className="absolute top-[90px] left-[30px] [font-family:'Inter-Bold',Helvetica] font-bold text-[#3a3a3a] text-[40px] tracking-[0] leading-[normal] whitespace-nowrap">
-                Profile
-            </h1>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Last Name</Text>
+            <Text style={styles.value}>{profileData.lastName}</Text>
+          </View>
 
-            <section
-                className="absolute top-[170px] left-[29px] w-[66px] h-[66px]"
-                aria-label="Profile picture"
-            >
-                <Link to="/profile" aria-label="View profile picture">
-                    <img
-                        className="absolute top-0 left-0 w-[66px] h-[66px] block rounded-full"
-                        alt="Profile picture of Wednesday Addams"
-                        src={profileImage}
-                    />
-                </Link>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Date of Birth</Text>
+            <Text style={styles.value}>{profileData.dateOfBirth}</Text>
+          </View>
+        </View>
 
-                {profileData.isOnline && (
-                    <div
-                        className="absolute top-[52px] left-[52px] w-[13px] h-[13px] bg-[#20c968] rounded-[6.4px] border-[1.28px] border-solid border-white"
-                        aria-label="Online status indicator"
-                    />
-                )}
-            </section>
+        {/* ปุ่มออกจากระบบ */}
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <View style={styles.logoutContent}>
+            <Text style={styles.logoutText}>Log out</Text>
+            <Ionicons name="log-out-outline" size={20} color="#000" />
+          </View>
+        </TouchableOpacity>
+      </LinearGradient>
+    </SafeAreaView>
+  );
+}
 
-            <section
-                className="absolute w-[135px] top-[178px] left-[109px] h-[51px] flex"
-                aria-label="User information"
-            >
-                <div className="w-[139px] flex-col gap-2 h-[51px] flex">
-                    <h2 className="w-[135px] h-6 text-xl whitespace-nowrap [font-family:'Inter-Regular',Helvetica] font-normal text-black tracking-[0] leading-[normal]">
-                        {profileData.displayName}
-                    </h2>
-
-                    <span
-                        className="w-12 h-[19px] [font-family:'SF_Pro_Text-Light',Helvetica] font-light text-[#5ac5a9] text-base tracking-[0] leading-[normal] whitespace-nowrap"
-                        aria-label={`Status: ${profileData.status}`}
-                    >
-            {profileData.status}
-          </span>
-                </div>
-            </section>
-
-            <section
-                className="absolute top-[272px] left-[30px] w-[315px] h-[304px] flex flex-col gap-6"
-                aria-label="Profile details"
-            >
-                {profileFields.map((field, index) => (
-                    <div key={field.label} className="w-[315px] flex">
-                        <div className="w-[319px] h-[58px] flex flex-col">
-                            <label className="w-auto h-[17px] [font-family:'Inter-ExtraBold',Helvetica] font-extrabold text-[#3a3a3a] text-sm tracking-[0] leading-[normal]">
-                                {field.label}
-                            </label>
-
-                            <div className="w-auto h-[17px] mt-4 [font-family:'Inter-Regular',Helvetica] font-normal text-black text-sm tracking-[0] leading-[normal]">
-                                {field.value}
-                            </div>
-
-                            <img
-                                className="w-[315px] h-px mt-[7px] object-cover"
-                                alt=""
-                                src={field.lineImage}
-                                role="presentation"
-                            />
-                        </div>
-                    </div>
-                ))}
-            </section>
-
-            <section
-                className="absolute top-[618px] left-[30px] w-[317px] h-[72px]"
-                aria-label="Account actions"
-            >
-                <button
-                    onClick={handleLogout}
-                    className="absolute top-0 left-0 w-[315px] h-[72px] rounded-[28px] border border-solid border-[#9999a3] cursor-pointer hover:bg-gray-50 transition-colors duration-200 flex items-center"
-                    aria-label="Log out of account"
-                >
-          <span className="absolute top-6 left-6 [font-family:'Inter-ExtraBold',Helvetica] font-extrabold text-black text-xl tracking-[0] leading-[normal] whitespace-nowrap">
-            Log out
-          </span>
-
-                    <img
-                        className="absolute top-[25px] left-[270px] w-[21px] h-[22px]"
-                        alt=""
-                        src={logOut1}
-                        role="presentation"
-                    />
-                </button>
-            </section>
-        </main>
-    );
-};
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 30,
+  },
+  backButton: {
+    marginTop: 10,
+  },
+  header: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: "#333",
+    marginTop: 10,
+  },
+  profileSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 24,
+  },
+  profileImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    width: 12,
+    height: 12,
+    backgroundColor: "#20c968",
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  displayName: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#000",
+  },
+  status: {
+    fontSize: 14,
+    color: "#5ac5a9",
+    marginTop: 2,
+  },
+  infoSection: {
+    marginTop: 36,
+  },
+  infoRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#C6C6C6",
+    paddingBottom: 8,
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 13,
+    color: "#333",
+    fontWeight: "600",
+  },
+  value: {
+    fontSize: 14,
+    color: "#000",
+    marginTop: 2,
+  },
+  logoutButton: {
+    borderWidth: 1,
+    borderColor: "#A0A0A0",
+    borderRadius: 25,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 50,
+    backgroundColor: "#fff",
+  },
+  logoutContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  logoutText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
+  },
+});
