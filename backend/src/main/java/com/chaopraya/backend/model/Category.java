@@ -1,6 +1,6 @@
 package com.chaopraya.backend.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -13,10 +13,13 @@ public class Category {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonBackReference
+    // ✅ แก้ไข: เปลี่ยนจาก @JsonBackReference เป็น @JsonIgnoreProperties เพื่อป้องกัน recursion
+    @JsonIgnoreProperties({"categories", "paymentMethods", "transactions", "hibernateLazyInitializer", "handler"})
     private User user;
 
+    // ✅ ป้องกัน recursion เมื่อ Category ถูกเรียกโดยตรง
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties({"category", "hibernateLazyInitializer", "handler"})
     private List<Transaction> transactions;
 
     // Constructors
