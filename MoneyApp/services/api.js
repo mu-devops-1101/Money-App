@@ -1,57 +1,82 @@
-// services/api.js
 import axios from "axios";
-const BASE_URL = "http://10.0.2.2:8080/api/v1"; // Android Emulator ใช้ 10.0.2.2
-const AUTH_URL = "http://10.0.2.2:8080/api/auth";
+import { Platform } from "react-native";
+
+const BASE_DOMAIN = Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080';
+const BASE_URL = `${BASE_DOMAIN}/api/v1`;
+const AUTH_URL = `${BASE_DOMAIN}/api/auth`;
 
 let jwtToken = null;
 
+// --- Public Method: ตั้งค่า Token หลัง Login (ประกาศแค่ครั้งเดียว) ---
 export const setToken = (token) => {
     jwtToken = token;
+    // NOTE: In a real app, use AsyncStorage to persist the token.
 };
 
-const request = async (url, method = "GET", body = null, isAuth = false) => {
-    const headers = { "Content-Type": "application/json" };
-    if (isAuth && jwtToken) {
-        headers["Authorization"] = `Bearer ${jwtToken}`;
+// 2. สร้าง Axios Instance
+const apiClient = axios.create({
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
+
+// Interceptor: ตัวจัดการ Token อัตโนมัติสำหรับทุก Request
+apiClient.interceptors.request.use(
+    (config) => {
+        if (jwtToken) {
+            config.headers.Authorization = `Bearer ${jwtToken}`;
+        }
+        // กำหนด baseURL ที่ถูกต้องตามประเภทของ API
+        if (config.isAuth) {
+            config.baseURL = AUTH_URL;
+        } else {
+            config.baseURL = BASE_URL;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
+);
 
-    const res = await fetch(url, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : null,
-    });
+// ----------------- Public Methods -----------------
 
-    const data = await res.json().catch(() => ({}));
-    return { status: res.status, data };
+// === Auth APIs (ใช้ isAuth: true) ===
+export const registerUser = (data) => {
+    return apiClient.post('/register', data, { isAuth: true });
 };
 
-// === Auth APIs ===
-export const registerUser = async (data) => {
-    return await axios.post(`${API_URL}/register`, data);
+export const loginUser = (data) => {
+    return apiClient.post('/login', data, { isAuth: true });
 };
 
 
-export const loginUser = async (data) => {
-    return await axios.post(`${API_URL}/login`, data);
+// === Transaction/Wallet APIs (ใช้ Base URL ปกติ) ===
+export const getMonthlySummary = (year, month) => {
+    return apiClient.get(`/transactions/monthly-summary/${year}/${month}`);
 };
 
-// === Example APIs ===
-export const getMonthlySummary = (year, month) =>
-    request(`${BASE_URL}/transactions/monthly-summary/${year}/${month}`, "GET", null, true);
+export const addCategory = (category) => {
+    return apiClient.post(`/categories`, category);
+};
 
-export const addCategory = (category) =>
-    request(`${BASE_URL}/categories`, "POST", category, true);
+export const addPaymentMethod = (paymentMethod) => {
+    return apiClient.post(`/payment-methods`, paymentMethod);
+};
 
-export const addPaymentMethod = (paymentMethod) =>
-    request(`${BASE_URL}/payment-methods`, "POST", paymentMethod, true);
+export const addTransaction = (transactionData) => {
+    return apiClient.post('/transactions', transactionData);
+};
 
+
+// ----------------- Mock Data (เก็บไว้ใช้ Test) -----------------
 let transactions = [];
 
 export const mockAddTransaction = async (transaction) => {
     transactions.push(transaction);
-    return { success: true, message: "Transaction added", data: transaction };
+    return { status: 201, data: { success: true, message: "Transaction added", data: transaction } };
 };
 
 export const mockGetTransactions = async () => {
-    return transactions;
+    return { status: 200, data: transactions };
 };

@@ -16,14 +16,12 @@ function App() {
     return (
         // 3. ห่อหุ้มทุกอย่างด้วย NavigationContainer
         <NavigationContainer>
-            {/* 4. กำหนด "กอง" ของหน้าจอ (Stack Navigator) */}
             <Stack.Navigator
-                initialRouteName="AddTransaction" // กำหนดหน้าแรกที่แอปจะเปิด
+                initialRouteName="AddTransaction"
                 screenOptions={{
-                    headerShown: false // ซ่อน Header เริ่มต้นของทุกหน้า
+                    headerShown: false
                 }}
             >
-                {/* 5. กำหนดแต่ละ Route และ Component ของมัน */}
                 <Stack.Screen name="GetStarted" component={GetStarted} />
                 <Stack.Screen name="Login" component={Login} />
                 <Stack.Screen name="Register" component={Register} />
