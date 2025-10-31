@@ -12,10 +12,7 @@ import {
     Platform // เพิ่ม Platform เพื่อจัดการเงา
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { loginUser } from "../services/api";
-
-// 1. นำเข้าสีจากที่เดียวกันกับ GetStarted หรือกำหนดตรงนี้
-// (แนะนำให้สร้างไฟล์ centralize colors เช่น constants/colors.js แล้ว import มาใช้)
+import { loginUser, setAuthToken } from "../services/api";
 const COLORS = {
     primary: '#5ac5a9',
     dark: '#363636',
@@ -30,32 +27,22 @@ export default function Login({ navigation }) {
     const [loading, setLoading] = useState(false); // เพิ่ม state สำหรับ loading
 
     const handleLogin = async () => {
-        // ... (ส่วนตรวจสอบข้อมูล) ...
-
-        setLoading(true);
+        // ...
         try {
-            const credentials = { email, password };
-
+            const credentials = { username: email, password }; // **แก้ username เป็น email ถ้าจำเป็น**
             const res = await loginUser(credentials);
 
-            // 1. ตรวจสอบสถานะ (Login สำเร็จคาดหวัง 200 OK)
-            if (res.status === 200) {
-                // *** สำคัญมาก: ต้องบันทึก Token ที่ Backend ส่งกลับมา ***
-                const token = res.data.token; // สมมติว่า Backend ส่ง token มาใน 'token' field
+            if (res.status === 200 && res.data.jwt) { // ตรวจสอบว่าได้ token จริงๆ
+                const token = res.data.jwt;
 
-                if(token) {
-                    // 2. บันทึก Token ใน API Service เพื่อใช้กับ API อื่นๆ
-                    // setToken(token); // ต้องสร้าง setToken ใน api.js
+                // --- ✅ FIX: บรรทัดนี้สำคัญที่สุด ---
+                // "เก็บ" บัตรผ่าน (Token) ไว้ในระบบทันที
+                setAuthToken(token);
 
-                    Alert.alert("Success", "Login successful!");
-                    // 3. สั่งนำทาง
-                    navigation.navigate("Home");
-                } else {
-                    Alert.alert("Error", "Login failed: Missing token.");
-                }
+                Alert.alert("Success", "Login successful!");
+                navigation.navigate("Home");
             } else {
-                // กรณี Backend ตอบกลับมาด้วย status อื่นที่ไม่ใช่ 200
-                Alert.alert("Error", res.data.message || "Login failed.");
+                Alert.alert("Error", "Login failed: Missing token.");
             }
         } catch (err) {
             // จัดการ Network Error หรือ 4xx/5xx status codes

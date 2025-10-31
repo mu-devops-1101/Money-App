@@ -1,225 +1,205 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Platform, ActivityIndicator, TouchableOpacity } from "react-native";
-import { getMonthlySummary } from "../services/api";
+import React, { useState, useEffect } from 'react';
+import {
+    SafeAreaView,
+    View,
+    Text,
+    StyleSheet,
+    ActivityIndicator,
+    Image,
+    FlatList,
+    TouchableOpacity
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
-// 1. (แนะนำ) สร้าง Object สีไว้ข้างนอก ทำให้จัดการธีมสีง่าย
+
+// --- นำเข้า Component และฟังก์ชัน API ---
+import { BottomNavBar } from './BottomNavBar';
+import { getUserProfile, getMonthlySummary, getTransactions } from '../services/api';
+
+// --- กำหนดค่าสีกลาง ---
 const COLORS = {
-    background: '#f4f7f9',
-    webBackground: '#e8eff3',
-    card: '#ffffff',
-    textPrimary: '#333',
+    primary: '#5AC5A9',
+    dark: '#363636',
+    white: '#FFFFFF',
     textSecondary: '#666',
     income: '#2ecc71',
     expense: '#e74c3c',
-    balance: '#3498db',
+    cardBackground: 'rgba(255, 255, 255, 0.9)',
     error: '#e74c3c',
-    divider: '#e0e0e0',
 };
 
-export default function Home({ navigation }) { // เพิ่ม navigation เข้ามา
-    const [summary, setSummary] = useState(null);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(true); // 2. ใช้ state 'loading' โดยเฉพาะ
+// --- Component ย่อย: ส่วนหัวต้อนรับ ---
+const WelcomeHeader = ({ user }) => (
+    <View style={styles.headerContainer}>
+        <View>
+            <Text style={styles.welcomeText}>Welcome back!!</Text>
+            <Text style={styles.userNameText}>{user ? user.username : 'Loading...'}</Text>
+        </View>
+        <TouchableOpacity onPress={() => { /* TODO: Navigate to Profile */ }}>
+            <Image
+                source={require('../assets/Profile-image.png')} // ต้องมีรูปนี้ใน assets
+                style={styles.profileImage}
+            />
+        </TouchableOpacity>
+    </View>
+);
 
-    // 3. (แนะนำ) แยกฟังก์ชันโหลดข้อมูลออกมา ทำให้เรียกใช้ซ้ำได้
-    const loadSummary = async () => {
-        setLoading(true);
-        setError(null);
+// --- Component ย่อย: การ์ดสรุปยอดเงิน ---
+const BalanceSummary = ({ summary }) => {
+    const formatCurrency = (num) => num != null ? num.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00';
+    return (
+        <View style={styles.summaryCard}>
+            <Text style={styles.balanceLabel}>Balance</Text>
+            <Text style={styles.balanceAmount}>฿{formatCurrency(summary?.balance)}</Text>
+            <View style={styles.incomeExpenseContainer}>
+                <View style={styles.incomeBox}>
+                    <Text style={styles.incomeExpenseLabel}>Total Income</Text>
+                    <Text style={[styles.incomeExpenseAmount, { color: COLORS.income }]}>
+                        + ฿{formatCurrency(summary?.totalIncome)}
+                    </Text>
+                </View>
+                <View style={styles.expenseBox}>
+                    <Text style={styles.incomeExpenseLabel}>Total Expense</Text>
+                    <Text style={[styles.incomeExpenseAmount, { color: COLORS.expense }]}>
+                        - ฿{formatCurrency(summary?.totalExpenses)}
+                    </Text>
+                </View>
+            </View>
+        </View>
+    );
+};
+
+// --- Component ย่อย: รายการธุรกรรมแต่ละอัน ---
+const TransactionItem = ({ item }) => {
+    const isIncome = item.type === 'income';
+    return (
+        <TouchableOpacity style={styles.transactionItem}>
+            <View style={styles.transactionDetails}>
+                <Text style={styles.transactionDescription}>{item.description || item.category}</Text>
+                <Text style={styles.transactionDate}>
+                    {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </Text>
+            </View>
+            <Text style={[styles.transactionAmount, isIncome ? styles.incomeText : styles.expenseText]}>
+                {isIncome ? '+' : '-'} {item.amount.toFixed(2)}
+            </Text>
+        </TouchableOpacity>
+    );
+};
+
+
+// --- หน้า Home หลัก ---
+export default function HomeScreen({ navigation }) {
+    const [user, setUser] = useState(null);
+    const [summary, setSummary] = useState(null);
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null); // 👈 เพิ่ม State สำหรับจัดการ Error
+
+    const fetchData = async () => {
+        setLoading(true); // เริ่มโหลดใหม่ทุกครั้งที่เรียก
+        setError(null);   // ล้าง Error เก่าทิ้ง
         try {
             const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth() + 1;
-            const res = await getMonthlySummary(year, month);
-            if (res && res.data) {
-                setSummary(res.data);
-            } else {
-                setError("Could not retrieve summary data.");
-            }
+            // ดึงข้อมูลทั้ง 3 ส่วนพร้อมกัน
+            const [userRes, summaryRes, transactionsRes] = await Promise.all([
+                getUserProfile(),
+                getMonthlySummary(now.getFullYear(), now.getMonth() + 1),
+                getTransactions()
+            ]);
+            // อัปเดต State เมื่อดึงข้อมูลสำเร็จ
+            setUser(userRes.data);
+            setSummary(summaryRes.data);
+            setTransactions(transactionsRes.data);
         } catch (err) {
-            console.error("Failed to fetch summary:", err);
-            setError("An error occurred while fetching data.");
+            console.error("Failed to fetch home screen data:", err);
+            setError("Failed to load data. Please try again."); // 👈 ตั้งค่า Error message
         } finally {
-            setLoading(false); // หยุดโหลดเสมอไม่ว่าจะสำเร็จหรือล้มเหลว
+            setLoading(false); // 👈 หยุดโหลดเสมอ ไม่ว่าจะสำเร็จหรือล้มเหลว
         }
     };
 
     useEffect(() => {
-        loadSummary();
+        fetchData();
     }, []);
 
-    // ฟังก์ชันสำหรับแสดงผลตัวเลขให้สวยงาม (เหมือนเดิม)
-    const formatCurrency = (number) => {
-        if (typeof number !== 'number') return '0'; // ป้องกัน error ถ้าข้อมูลไม่ใช่ตัวเลข
-        return new Intl.NumberFormat('en-US', { style: 'decimal' }).format(number);
-    };
+    const currentRoute = navigation.getState().routes[navigation.getState().index].name;
 
-    // 4. สร้าง Component ย่อยสำหรับแต่ละสถานะ (Loading, Error, Content)
-    const renderContent = () => {
-        if (loading) {
-            return <ActivityIndicator size="large" color={COLORS.primary} />;
-        }
+    // --- ส่วนแสดงผลตามสถานะ ---
 
-        if (error) {
-            return (
-                <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity style={styles.retryButton} onPress={loadSummary}>
-                        <Text style={styles.retryButtonText}>Try Again</Text>
-                    </TouchableOpacity>
-                </View>
-            );
-        }
+    if (loading) {
+        return <View style={styles.centerContainer}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+    }
 
-        if (summary) {
-            return (
-                <View style={styles.summaryBox}>
-                    <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Total Income:</Text>
-                        <Text style={[styles.summaryValue, styles.incomeText]}>
-                            + {formatCurrency(summary.totalIncome)}
-                        </Text>
-                    </View>
-                    <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Total Expenses:</Text>
-                        <Text style={[styles.summaryValue, styles.expenseText]}>
-                            - {formatCurrency(summary.totalExpenses)}
-                        </Text>
-                    </View>
-                    <View style={styles.divider} />
-                    <View style={styles.summaryRow}>
-                        <Text style={[styles.summaryLabel, styles.balanceLabel]}>Balance:</Text>
-                        <Text style={[styles.summaryValue, styles.balanceValue]}>
-                            {formatCurrency(summary.balance)}
-                        </Text>
-                    </View>
-                </View>
-            );
-        }
-
-        return null; // กรณีที่ไม่มีข้อมูลใดๆ
-    };
+    if (error) {
+        return (
+            <View style={styles.centerContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+                    <Text style={styles.retryButtonText}>Try Again</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
-        <View style={[styles.container, Platform.select({ web: styles.webContainer })]}>
-            <Text style={styles.title}>Monthly Summary</Text>
-            {renderContent()}
-            {/* 5. เพิ่มปุ่ม Call-to-Action */}
-            {!loading && (
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => navigation.navigate("AddTransaction")} // ไปยังหน้าเพิ่ม Transaction
-                >
-                    <Text style={styles.addButtonText}>+</Text>
-                </TouchableOpacity>
-            )}
-        </View>
+        <SafeAreaView style={styles.safeArea}>
+            <LinearGradient
+                colors={['#363636', '#5AC5A9']}
+                style={styles.gradientBackground}
+            >
+                <View style={{ flex: 1 }}>
+                    <FlatList
+                        ListHeaderComponent={
+                            <>
+                                <WelcomeHeader user={user} />
+                                <BalanceSummary summary={summary} />
+                                <Text style={styles.listHeader}>All Transactions</Text>
+                            </>
+                        }
+                        data={transactions}
+                        renderItem={({ item }) => <TransactionItem item={item} />}
+                        keyExtractor={item => item.id.toString()}
+                        contentContainerStyle={styles.listContainer}
+                        // เพิ่มข้อความเมื่อไม่มีข้อมูล
+                        ListEmptyComponent={<Text style={styles.emptyText}>No transactions yet.</Text>}
+                    />
+                </View>
+                <BottomNavBar navigation={navigation} currentRoute={currentRoute} />
+            </LinearGradient>
+        </SafeAreaView>
     );
 }
 
+// --- Styles ---
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: COLORS.background,
-    },
-    webContainer: {
-        backgroundColor: COLORS.webBackground,
-        height: '100vh',
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: "bold",
-        marginBottom: 24,
-        color: COLORS.textPrimary,
-    },
-    summaryBox: {
-        padding: 20,
-        backgroundColor: COLORS.card,
-        borderRadius: 12,
-        width: '85%',
-        maxWidth: 400,
-        ...Platform.select({ // ปรับปรุงเงา
-            ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-            },
-            android: {
-                elevation: 5,
-            }
-        }),
-    },
-    summaryRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginVertical: 8,
-    },
-    summaryLabel: {
-        fontSize: 16,
-        color: COLORS.textSecondary,
-    },
-    summaryValue: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
+    safeArea: { flex: 1, backgroundColor: COLORS.dark },
+    gradientBackground: { flex: 1 },
+    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.primary },
+    listContainer: { paddingHorizontal: 24, paddingBottom: 20 },
+    listHeader: { fontSize: 20, fontWeight: 'bold', color: COLORS.white, marginTop: 20, marginBottom: 10 },
+    headerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 50, marginBottom: 20 },
+    welcomeText: { fontSize: 16, color: COLORS.white },
+    userNameText: { fontSize: 24, fontWeight: 'bold', color: COLORS.white },
+    profileImage: { width: 66, height: 66, borderRadius: 33, borderWidth: 2, borderColor: COLORS.white },
+    summaryCard: { backgroundColor: COLORS.cardBackground, borderRadius: 20, padding: 20, marginBottom: 20 },
+    balanceLabel: { fontSize: 16, color: COLORS.dark },
+    balanceAmount: { fontSize: 36, fontWeight: 'bold', color: COLORS.dark, marginVertical: 5 },
+    incomeExpenseContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+    incomeBox: { alignItems: 'flex-start' },
+    expenseBox: { alignItems: 'flex-end' },
+    incomeExpenseLabel: { fontSize: 14, color: '#555' },
+    incomeExpenseAmount: { fontSize: 18, fontWeight: '600' },
+    transactionItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.cardBackground, padding: 15, borderRadius: 12, marginBottom: 10 },
+    transactionDetails: { flex: 1 },
+    transactionDescription: { fontSize: 16, fontWeight: '500', color: COLORS.dark },
+    transactionDate: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
+    transactionAmount: { fontSize: 16, fontWeight: 'bold' },
     incomeText: { color: COLORS.income },
     expenseText: { color: COLORS.expense },
-    divider: {
-        height: 1,
-        backgroundColor: COLORS.divider,
-        marginVertical: 12,
-    },
-    balanceLabel: { fontWeight: 'bold', fontSize: 18, color: COLORS.textPrimary },
-    balanceValue: { fontWeight: 'bold', fontSize: 20, color: COLORS.balance },
-    errorContainer: { // สไตล์สำหรับส่วนแสดง Error
-        alignItems: 'center',
-        padding: 20,
-    },
-    errorText: {
-        color: COLORS.error,
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 20,
-    },
-    retryButton: { // ปุ่มสำหรับลองใหม่
-        backgroundColor: COLORS.balance,
-        paddingVertical: 10,
-        paddingHorizontal: 30,
-        borderRadius: 20,
-    },
-    retryButtonText: {
-        color: COLORS.card,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    addButton: { // สไตล์สำหรับปุ่ม +
-        position: 'absolute',
-        bottom: 30,
-        right: 30,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: COLORS.balance,
-        justifyContent: 'center',
-        alignItems: 'center',
-        ...Platform.select({ // เงาสำหรับปุ่ม +
-            ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-            },
-            android: {
-                elevation: 8,
-            }
-        }),
-    },
-    addButtonText: {
-        color: COLORS.card,
-        fontSize: 32,
-        lineHeight: 36,
-    }
+    emptyText: { color: COLORS.white, textAlign: 'center', marginTop: 20 },
+    // Error Styles
+    errorText: { color: COLORS.white, fontSize: 18, textAlign: 'center', marginBottom: 20 },
+    retryButton: { backgroundColor: COLORS.white, paddingVertical: 10, paddingHorizontal: 30, borderRadius: 20 },
+    retryButtonText: { color: COLORS.primary, fontSize: 16, fontWeight: 'bold' },
 });

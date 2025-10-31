@@ -19,7 +19,9 @@ export default function Register({ navigation }) {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
 
+    // ✅ ใช้ฟังก์ชันนี้แทนของเดิมทั้งหมด
     const handleRegister = async () => {
+        // --- 1. ตรวจสอบข้อมูลฝั่ง Frontend ก่อน ---
         if (!username || !password || !confirmPassword || !email) {
             Alert.alert("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลให้ครบทุกช่อง");
             return;
@@ -30,32 +32,36 @@ export default function Register({ navigation }) {
         }
 
         setLoading(true);
+
         try {
+            // --- 2. เตรียมข้อมูลที่จะส่งไป Backend ---
+            // Backend ของคุณรับแค่ username กับ password
             const userData = {
                 username: username,
                 password: password,
-                role: "ROLE_USER"
             };
 
             console.log("ส่งข้อมูลไป Backend:", JSON.stringify(userData));
 
-            const res = await registerUser(userData);
-            console.log("Backend response:", res.data);
+            // --- 3. เรียก API ---
+            const response = await registerUser(userData);
+            console.log("Backend response:", response.data);
 
-            // ✅ Backend ตอบกลับด้วย status 200 และข้อความเป็น string
-            if (res.status === 200 && typeof res.data === "string") {
-                Alert.alert("ลงทะเบียนสำเร็จ!", "กรุณาเข้าสู่ระบบเพื่อใช้งาน");
-                navigation.navigate("Login");
-            } else {
-                Alert.alert("เกิดข้อผิดพลาด", res.data?.message || "ไม่สามารถสมัครสมาชิกได้");
-            }
+            // --- 4. จัดการเมื่อสำเร็จ ---
+            Alert.alert(
+                "ลงทะเบียนสำเร็จ!",
+                "กรุณาเข้าสู่ระบบเพื่อใช้งาน",
+                [{ text: "OK", onPress: () => navigation.navigate("Login") }]
+            );
 
         } catch (err) {
-            const errorMessage =
-                err.response?.data || err.message || "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้";
+            // --- 5. จัดการเมื่อเกิด Error ---
+            // ดึงข้อความ error จากที่ backend ส่งมา (เช่น "Username is already taken!")
+            const errorMessage = err.response?.data || err.message || "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้";
             Alert.alert("เกิดข้อผิดพลาด", errorMessage.toString());
             console.error("Register error:", err);
         } finally {
+            // --- 6. หยุด Loading เสมอ ไม่ว่าจะสำเร็จหรือล้มเหลว ---
             setLoading(false);
         }
     };
@@ -63,28 +69,17 @@ export default function Register({ navigation }) {
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                <View style={styles.logoContainer}>
-                    <View style={styles.logoBackground}>
-                        <View style={styles.logoInnerCircle}>
-                            <Image
-                                source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/GwyeDrebHg/7u6dra7j_expires_30_days.png" }}
-                                resizeMode={"contain"}
-                                style={styles.logoImage}
-                            />
-                        </View>
-                    </View>
-                </View>
-
-                {/* --- Input Fields --- */}
+                {/* ... ส่วน UI ไม่ต้องแก้ ... */}
                 <TextInput placeholder="Username" value={username} onChangeText={setUsername} style={styles.input} />
                 <TextInput placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" style={styles.input} />
                 <TextInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry style={styles.input} />
                 <TextInput placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry style={styles.input} />
 
                 {/* --- Sign Up Button --- */}
+                {/* ตรวจสอบว่า onPress เรียกใช้ handleRegister ที่เราแก้แล้ว */}
                 <TouchableOpacity style={styles.signUpButton} onPress={handleRegister} disabled={loading}>
                     <Text style={styles.signUpButtonText}>
-                        {loading ? 'กำลังสร้างบัญชี...' : 'SIGN UP'}
+                        {loading ? 'กำลังสมัคร...' : 'SIGN UP'}
                     </Text>
                 </TouchableOpacity>
             </ScrollView>

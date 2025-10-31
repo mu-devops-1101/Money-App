@@ -18,6 +18,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+// --- Imports ที่ต้องเพิ่ม ---
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.Arrays;
+import static org.springframework.security.config.Customizer.withDefaults;
+// --- สิ้นสุด Imports ที่ต้องเพิ่ม ---
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -26,7 +34,6 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final JwtRequestFilter jwtRequestFilter;
 
-    // การทำ Constructor Injection สำหรับ Service และ Filter
     public SecurityConfig(CustomUserDetailsService userDetailsService, JwtRequestFilter jwtRequestFilter) {
         this.userDetailsService = userDetailsService;
         this.jwtRequestFilter = jwtRequestFilter;
@@ -35,21 +42,43 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // 1. ปิด CSRF เนื่องจากเป็น Stateless REST API
-            .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(authorize -> authorize
-                // 2. อนุญาตให้เข้าถึง /api/auth/ (register, login) ได้โดยไม่ต้องตรวจสอบสิทธิ์
-                .requestMatchers("/api/auth/**").permitAll()
-                // 3. กำหนดให้ Endpoint อื่นๆ ทั้งหมดต้องมีการตรวจสอบสิทธิ์
-                .anyRequest().authenticated()
-            )
-            // 4. ตั้งค่า Session Management เป็น Stateless (ไม่เก็บสถานะ session)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                // ✅ 1. เพิ่มการตั้งค่า CORS ที่นี่
+                .cors(withDefaults()) // (จะไปเรียกใช้ Bean 'corsConfigurationSource' ข้างล่าง)
 
-        // 5. เพิ่ม JwtRequestFilter เข้าไปก่อน UsernamePasswordAuthenticationFilter
+                // 2. ปิด CSRF (เหมือนเดิม)
+                .csrf(AbstractHttpConfigurer::disable)
+
+                // 3. กำหนดสิทธิ์การเข้าถึง (เหมือนเดิม)
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                // 4. ตั้งค่า Session (เหมือนเดิม)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        // 5. เพิ่ม Filter (เหมือนเดิม)
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    // ✅ 6. เพิ่ม Bean นี้เพื่อกำหนดค่า CORS
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // อนุญาต Origin จาก Frontend (React Native) ของคุณ
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8081"));
+        // อนุญาต Methods ที่ต้องการ
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // อนุญาต Headers ทั้งหมด
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // อนุญาตการส่ง credentials (เช่น cookies)
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // ใช้การตั้งค่านี้กับทุก path ภายใต้ "/api/"
+        source.registerCorsConfiguration("/api/**", configuration);
+        return source;
     }
 
     @Bean
@@ -60,14 +89,11 @@ public class SecurityConfig {
         return authProvider;
     }
 
-    // 6. สร้าง Bean สำหรับ AuthenticationManager เพื่อให้สามารถ Inject ใน AuthController ได้
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationProvider authenticationProvider) {
-        // ใช้ ProviderManager เพื่อรวม AuthenticationProvider เข้าด้วยกัน
         return new ProviderManager(authenticationProvider);
     }
-    
-    // 7. สร้าง Bean สำหรับ PasswordEncoder
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
