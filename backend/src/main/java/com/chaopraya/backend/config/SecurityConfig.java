@@ -18,13 +18,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-// --- Imports ที่ต้องเพิ่ม ---
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import static org.springframework.security.config.Customizer.withDefaults;
-// --- สิ้นสุด Imports ที่ต้องเพิ่ม ---
 
 @Configuration
 @EnableWebSecurity
@@ -48,9 +46,9 @@ public class SecurityConfig {
                 // 2. ปิด CSRF (เหมือนเดิม)
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // 3. กำหนดสิทธิ์การเข้าถึง (เหมือนเดิม)
+                // 3. กำหนดสิทธิ์การเข้าถึง - ✅ เพิ่ม /auth/** เพื่อให้ตรงกับ endpoint จริง
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 // 4. ตั้งค่า Session (เหมือนเดิม)
@@ -62,22 +60,35 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ✅ 6. เพิ่ม Bean นี้เพื่อกำหนดค่า CORS
+    // ✅ 6. แก้ไข Bean นี้เพื่อรองรับทุก path
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // อนุญาต Origin จาก Frontend (React Native) ของคุณ
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8081"));
+
+        // อนุญาต Origin จาก Frontend (React) ของคุณ
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:8081",
+                "http://frontend:8081",  // Docker service name
+                "http://host.docker.internal:8081"  // Docker Desktop
+        ));
+
         // อนุญาต Methods ที่ต้องการ
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
         // อนุญาต Headers ทั้งหมด
         configuration.setAllowedHeaders(Arrays.asList("*"));
+
         // อนุญาตการส่ง credentials (เช่น cookies)
         configuration.setAllowCredentials(true);
 
+        // เพิ่ม maxAge สำหรับ preflight cache
+        configuration.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // ใช้การตั้งค่านี้กับทุก path ภายใต้ "/api/"
-        source.registerCorsConfiguration("/api/**", configuration);
+
+        // ✅ FIX: เปลี่ยนจาก "/api/**" เป็น "/**" เพื่อรองรับทุก path
+        source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 
