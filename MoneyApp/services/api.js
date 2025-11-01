@@ -1,26 +1,56 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
+
+// Choose the correct base URL based on environment
+const getBaseURL = () => {
+    if (Platform.OS === 'web') {
+        // For web in Docker, use the backend service name
+        return 'http://backend:8080';
+    }
+    // For native mobile apps or local development
+    return 'http://localhost:8080';
+};
 
 const apiClient = axios.create({
-    baseURL: 'http://localhost:8080',
-
+    baseURL: getBaseURL(),
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 10000, // Add timeout
 });
 
+// Add request interceptor for debugging
+apiClient.interceptors.request.use(
+    config => {
+        console.log('API Request:', config.method.toUpperCase(), config.url);
+        return config;
+    },
+    error => {
+        console.error('API Request Error:', error);
+        return Promise.reject(error);
+    }
+);
+
+// Add response interceptor for debugging
+apiClient.interceptors.response.use(
+    response => {
+        console.log('API Response:', response.status, response.config.url);
+        return response;
+    },
+    error => {
+        console.error('API Response Error:', error.response?.status, error.response?.data);
+        return Promise.reject(error);
+    }
+);
+
 export const getUserProfile = () => {
-    // โดยทั่วไป Backend จะมี Endpoint เฉพาะสำหรับดึงข้อมูลผู้ใช้ปัจจุบัน
-    // เช่น '/profile/me' หรือ '/users/current'
-    // **คุณอาจต้องแก้ไข '/profile/me' ให้ตรงกับ Endpoint จริงของคุณ**
     return apiClient.get('/profile/me');
 }
 
-// ฟังก์ชันนี้จะถูกเรียกจากหน้า Register.js
 export const registerUser = (userData) => {
     return apiClient.post('/auth/register', userData);
 };
 
-// ฟังก์ชันนี้จะถูกเรียกจากหน้า Login.js
 export const loginUser = (credentials) => {
     return apiClient.post('/auth/login', credentials);
 };
@@ -31,10 +61,8 @@ export const getTransactions = () => {
 
 export const setAuthToken = (token) => {
     if (token) {
-        // ถ้ามี token, ให้ใส่เข้าไปใน Header ของทุกๆ request
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {
-        // ถ้าไม่มี (logout), ให้ลบ Header นี้ออก
         delete apiClient.defaults.headers.common['Authorization'];
     }
 };

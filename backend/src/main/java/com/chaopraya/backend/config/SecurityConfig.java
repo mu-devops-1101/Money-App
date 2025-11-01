@@ -68,8 +68,10 @@ public class SecurityConfig {
         // อนุญาต Origin จาก Frontend (React) ของคุณ
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:8081",
-                "http://frontend:8081",  // Docker service name
-                "http://host.docker.internal:8081"  // Docker Desktop
+                "http://frontend:8081",
+                "http://host.docker.internal:8081",
+                "http://127.0.0.1:8081",
+                "http://192.168.*.*:8081"  // For mobile device testing
         ));
 
         // อนุญาต Methods ที่ต้องการ

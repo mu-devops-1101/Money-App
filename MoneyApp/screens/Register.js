@@ -21,7 +21,6 @@ export default function Register({ navigation }) {
 
     // ✅ ใช้ฟังก์ชันนี้แทนของเดิมทั้งหมด
     const handleRegister = async () => {
-        // --- 1. ตรวจสอบข้อมูลฝั่ง Frontend ก่อน ---
         if (!username || !password || !confirmPassword || !email) {
             Alert.alert("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลให้ครบทุกช่อง");
             return;
@@ -34,20 +33,17 @@ export default function Register({ navigation }) {
         setLoading(true);
 
         try {
-            // --- 2. เตรียมข้อมูลที่จะส่งไป Backend ---
-            // Backend ของคุณรับแค่ username กับ password
             const userData = {
                 username: username,
                 password: password,
             };
 
-            console.log("ส่งข้อมูลไป Backend:", JSON.stringify(userData));
+            console.log("📤 Sending to backend:", userData);
+            console.log("📍 API URL:", apiClient.defaults.baseURL);
 
-            // --- 3. เรียก API ---
             const response = await registerUser(userData);
-            console.log("Backend response:", response.data);
+            console.log("✅ Backend response:", response.data);
 
-            // --- 4. จัดการเมื่อสำเร็จ ---
             Alert.alert(
                 "ลงทะเบียนสำเร็จ!",
                 "กรุณาเข้าสู่ระบบเพื่อใช้งาน",
@@ -55,13 +51,18 @@ export default function Register({ navigation }) {
             );
 
         } catch (err) {
-            // --- 5. จัดการเมื่อเกิด Error ---
-            // ดึงข้อความ error จากที่ backend ส่งมา (เช่น "Username is already taken!")
-            const errorMessage = err.response?.data || err.message || "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้";
+            console.error("❌ Full error object:", err);
+            console.error("❌ Response status:", err.response?.status);
+            console.error("❌ Response data:", err.response?.data);
+            console.error("❌ Request config:", err.config);
+
+            const errorMessage = err.response?.data?.message
+                || err.response?.data
+                || err.message
+                || "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้";
+
             Alert.alert("เกิดข้อผิดพลาด", errorMessage.toString());
-            console.error("Register error:", err);
         } finally {
-            // --- 6. หยุด Loading เสมอ ไม่ว่าจะสำเร็จหรือล้มเหลว ---
             setLoading(false);
         }
     };
