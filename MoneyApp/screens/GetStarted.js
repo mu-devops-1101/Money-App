@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-// 3. (แนะนำ) สร้าง Object สำหรับจัดการสี ทำให้แก้ไขธีมสีในอนาคตได้ง่าย
 const COLORS = {
     primary: '#5ac5a9',
     dark: '#363636',

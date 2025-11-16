@@ -9,45 +9,82 @@ import {
     TouchableOpacity,
     Alert,
     StyleSheet,
-    Platform // เพิ่ม Platform เพื่อจัดการเงา
+    Platform
 } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from "expo-linear-gradient";
 import { loginUser, setAuthToken } from "../services/api";
+
 const COLORS = {
     primary: '#5ac5a9',
     dark: '#363636',
     white: '#FFFFFF',
     lightGrey: '#F2F2F2',
-    textGrey: '#999999', // สีเทาสำหรับ placeholder/ข้อความ
+    textGrey: '#999999',
 };
 
 export default function Login({ navigation }) {
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false); // เพิ่ม state สำหรับ loading
+    const [loading, setLoading] = useState(false);
 
     const handleLogin = async () => {
-        // ...
+        if (!username || !password) {
+            Alert.alert("Incomplete Information", "Please fill in both Username and Password");
+            return;
+        }
+
+        setLoading(true);
+
         try {
-            const credentials = { username: email, password }; // **แก้ username เป็น email ถ้าจำเป็น**
+            const credentials = { username, password };
+            console.log("📤 Sending credentials:", credentials);
+
             const res = await loginUser(credentials);
 
-            if (res.status === 200 && res.data.jwt) { // ตรวจสอบว่าได้ token จริงๆ
-                const token = res.data.jwt;
+            console.log("✅ Full Response:", res);
+            console.log("✅ Response Status:", res.status);
+            console.log("✅ Response Data:", res.data);
+            console.log("✅ JWT Token:", res.data.jwt);
 
-                // --- ✅ FIX: บรรทัดนี้สำคัญที่สุด ---
-                // "เก็บ" บัตรผ่าน (Token) ไว้ในระบบทันที
-                setAuthToken(token);
+            if (res.status === 200) {
+                const token = res.data.jwt || res.data.token || res.data.accessToken;
 
-                Alert.alert("Success", "Login successful!");
-                navigation.navigate("Home");
+                if (token) {
+                    console.log("✅ Token found, saving...");
+
+                    // Save token to AsyncStorage
+                    await AsyncStorage.setItem('token', token);
+
+                    // Set token for axios
+                    setAuthToken(token);
+
+                    console.log("✅ Navigating to Home...");
+
+                    // Navigate to Home
+                    navigation.navigate("Home");
+
+                    setTimeout(() => {
+                        Alert.alert("Success", "Login successful!");
+                    }, 100);
+                } else {
+                    console.error("❌ Token not found in response");
+                    Alert.alert("Error", "Token not found in server response");
+                }
             } else {
-                Alert.alert("Error", "Login failed: Missing token.");
+                console.error("❌ Unexpected status code:", res.status);
+                Alert.alert("Error", "Invalid response status");
             }
         } catch (err) {
-            // จัดการ Network Error หรือ 4xx/5xx status codes
-            const errorMessage = err.response?.data?.message || "Cannot connect to server or invalid credentials.";
-            Alert.alert("Error", errorMessage);
+            console.error("❌ Login Error:", err);
+            console.error("❌ Error Response:", err.response?.data);
+
+            const errorMessage = err.response?.data?.message
+                || err.response?.data
+                || err.message
+                || "Cannot connect to server";
+
+            Alert.alert("Error", errorMessage.toString());
         } finally {
             setLoading(false);
         }
@@ -63,27 +100,24 @@ export default function Login({ navigation }) {
             <SafeAreaView style={styles.safeArea}>
                 <ScrollView contentContainerStyle={styles.scrollViewContent}>
                     <View style={styles.contentWrapper}>
-                        {/* โลโก้ */}
+                        {/* Logo */}
                         <Image
-                            source={{
-                                uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/GwyeDrebHg/xcnz10v3_expires_30_days.png" // เปลี่ยนเป็นรูปใน assets ของคุณดีกว่า
-                            }}
-                            resizeMode={"contain"} // ใช้ 'contain' เพื่อให้รูปภาพไม่ถูกบีบ
+                            source={require("../assets/image-4.png")}
+                            resizeMode={"contain"}
                             style={styles.logo}
                         />
 
-                        {/* หัวข้อ */}
+                        {/* Title */}
                         <Text style={styles.title}>Welcome Back!</Text>
                         <Text style={styles.subtitle}>Sign in to continue to your account.</Text>
 
                         {/* Input Fields */}
                         <View style={styles.inputContainer}>
                             <TextInput
-                                placeholder="Email Address"
+                                placeholder="Username"
                                 placeholderTextColor={COLORS.textGrey}
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
+                                value={username}
+                                onChangeText={setUsername}
                                 autoCapitalize="none"
                                 style={styles.textInput}
                             />
@@ -104,9 +138,9 @@ export default function Login({ navigation }) {
 
                         {/* Login Button */}
                         <TouchableOpacity
-                            style={styles.loginButton}
+                            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
                             onPress={handleLogin}
-                            disabled={loading} // ปิดการใช้งานปุ่มขณะโหลด
+                            disabled={loading}
                         >
                             <Text style={styles.loginButtonText}>
                                 {loading ? "Logging in..." : "LOG IN"}
@@ -135,21 +169,21 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollViewContent: {
-        flexGrow: 1, // ทำให้ ScrollView สามารถขยายเต็มพื้นที่ได้
-        justifyContent: 'center', // จัดเนื้อหาให้อยู่ตรงกลางแนวตั้ง
+        flexGrow: 1,
+        justifyContent: 'center',
         alignItems: 'center',
         paddingVertical: 40,
         paddingHorizontal: 25,
     },
     contentWrapper: {
         width: '100%',
-        maxWidth: 400, // จำกัดความกว้างสูงสุดสำหรับหน้าจอใหญ่
+        maxWidth: 400,
         alignItems: 'center',
     },
     logo: {
         width: 200,
         height: 200,
-        marginBottom: 30, // ลดระยะห่างด้านล่างของโลโก้
+        marginBottom: 30,
     },
     title: {
         fontSize: 28,
@@ -168,18 +202,18 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     textInput: {
-        backgroundColor: `${COLORS.white}33`, // ใช้ white ที่มีความโปร่งใส
-        color: COLORS.white, // สีของข้อความใน input
+        backgroundColor: `${COLORS.white}33`,
+        color: COLORS.white,
         fontSize: 16,
         borderRadius: 12,
-        paddingVertical: Platform.OS === 'ios' ? 15 : 12, // ปรับ padding ตาม OS
+        paddingVertical: Platform.OS === 'ios' ? 15 : 12,
         paddingHorizontal: 15,
         marginBottom: 15,
         borderWidth: 1,
-        borderColor: `${COLORS.white}66`, // สีขอบ input
+        borderColor: `${COLORS.white}66`,
     },
     forgotPasswordButton: {
-        alignSelf: 'flex-end', // จัดให้อยู่ชิดขวา
+        alignSelf: 'flex-end',
         marginBottom: 30,
     },
     forgotPasswordText: {
@@ -195,7 +229,7 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         justifyContent: "center",
         alignItems: "center",
-        ...Platform.select({ // เพิ่มเงา
+        ...Platform.select({
             ios: {
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 4 },
@@ -208,8 +242,11 @@ const styles = StyleSheet.create({
         }),
         marginBottom: 20,
     },
+    loginButtonDisabled: {
+        opacity: 0.6,
+    },
     loginButtonText: {
-        color: COLORS.dark, // สีตัวอักษรของปุ่ม login
+        color: COLORS.dark,
         fontSize: 18,
         fontWeight: "bold",
     },

@@ -40,15 +40,15 @@ services:
 
   frontend:
     build:
-      context: ./MoneyApp
+      context: ./MoneyApp  # ✅ ตรวจสอบว่าชื่อโฟลเดอร์ถูกต้อง (อาจเป็น ./frontend)
     ports:
-      - "8081:8081"
-      - "19000:19000"  # Expo DevTools
-      - "19001:19001"  # Expo Dev Server
-      - "19002:19002"  # Expo Metro Bundler
+      - "8081:8081"  # Expo Web
+    volumes:  # ✅ เพิ่ม volumes สำหรับ hot reload
+      - ./MoneyApp:/app  # เปลี่ยนเป็น ./frontend ถ้าชื่อโฟลเดอร์คือ frontend
+      - /app/node_modules
     environment:
-      - REACT_NATIVE_PACKAGER_HOSTNAME=localhost
-      - API_URL=http://backend:8080
+      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0  # ✅ เพิ่มบรรทัดนี้
+      - CHOKIDAR_USEPOLLING=true  # ✅ เพิ่มบรรทัดนี้ สำหรับ hot reload
     stdin_open: true
     tty: true
     depends_on:

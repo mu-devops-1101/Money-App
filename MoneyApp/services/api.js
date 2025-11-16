@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 const getBaseURL = () => {
     if (Platform.OS === 'web') {
         // For web in Docker, use the backend service name
-        return 'http://backend:8080';
+        return 'http://localhost:8080';
     }
     // For native mobile apps or local development
     return 'http://localhost:8080';
