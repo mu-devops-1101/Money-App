@@ -2,7 +2,6 @@ package com.chaopraya.backend.controller;
 
 import com.chaopraya.backend.dto.LoginRequest;
 import com.chaopraya.backend.dto.RegisterRequest;
-import com.chaopraya.backend.dto.AuthenticationResponse;
 import com.chaopraya.backend.model.User;
 import com.chaopraya.backend.repository.UserRepository;
 import com.chaopraya.backend.service.CustomUserDetailsService; 
@@ -11,8 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc; // <-- ADDED: For filter configuration
-import org.springframework.boot.test.mock.mockito.MockBean; // <-- ยังต้องใช้ในกรณีนี้
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -31,13 +30,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 /**
- * Integration Test สำหรับ AuthController โดยใช้ @WebMvcTest
- * ต้องใช้ @MockBean เพื่อจำลอง Dependencies ที่จำเป็นสำหรับ Controller และ Spring Security
- * (โดยเฉพาะ CustomUserDetailsService และ JwtUtil)
+ * Integration Test for AuthController using @WebMvcTest
+ * ⚠️ IMPORTANT: Use "/auth" path (not "/api/auth") to match the actual controller mapping
  */
 @WebMvcTest(AuthController.class)
-// FIX: Add this annotation to disable Spring Security filters (which cause 403 Forbidden) 
-// when testing public endpoints like /register and /login within the @WebMvcTest context.
 @AutoConfigureMockMvc(addFilters = false) 
 public class AuthControllerIntegrationTest {
 
@@ -47,11 +43,6 @@ public class AuthControllerIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // --------------------------------------------------------------------------------------
-    // FIX: MockDependencies ทั้งหมดที่ AuthController หรือ Security Filter Chain ต้องการ
-    // การใช้ @MockBean ที่นี่เป็นการแก้ปัญหา UnsatisfiedDependencyException 
-    // แม้จะมี Deprecation Warning แต่เป็นวิธีที่จำเป็นสำหรับ @WebMvcTest 
-    // --------------------------------------------------------------------------------------
     @MockBean
     private UserRepository userRepository;
 
@@ -66,7 +57,6 @@ public class AuthControllerIntegrationTest {
 
     @MockBean
     private CustomUserDetailsService customUserDetailsService; 
-    // --------------------------------------------------------------------------------------
 
     @Test
     void registerUser_Success() throws Exception {
@@ -74,13 +64,13 @@ public class AuthControllerIntegrationTest {
         request.setUsername("newuser");
         request.setPassword("securepass");
 
-        // Mock: UserRepository ตรวจสอบแล้วไม่พบ Username นี้
+        // Mock: UserRepository returns empty (username doesn't exist)
         when(userRepository.findByUsername(request.getUsername())).thenReturn(Optional.empty());
         
-        // Mock: จำลองการเข้ารหัสผ่าน
+        // Mock: Password encoding
         when(passwordEncoder.encode(any(String.class))).thenReturn("hashed_pass");
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/auth/register")  // ✅ Changed from /api/auth to /auth
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -93,10 +83,10 @@ public class AuthControllerIntegrationTest {
         request.setUsername("existinguser");
         request.setPassword("securepass");
 
-        // Mock: UserRepository ตรวจสอบแล้วพบ Username นี้
+        // Mock: UserRepository returns existing user
         when(userRepository.findByUsername(request.getUsername())).thenReturn(Optional.of(new User()));
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/auth/register")  // ✅ Changed from /api/auth to /auth
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -109,7 +99,7 @@ public class AuthControllerIntegrationTest {
         request.setUsername("testuser");
         request.setPassword("correctpass");
 
-        // 1. เตรียม Mock Objects
+        // 1. Create Mock Objects
         UserDetails mockUserDetails = org.springframework.security.core.userdetails.User
                 .withUsername("testuser").password("hashed_pass").authorities("ROLE_USER").build();
         Authentication mockAuthentication = org.mockito.Mockito.mock(Authentication.class);
@@ -121,11 +111,11 @@ public class AuthControllerIntegrationTest {
         when(jwtUtil.generateToken("testuser")).thenReturn(mockJwt);
 
         // 3. Perform Test
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/auth/login")  // ✅ Changed from /api/auth to /auth
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.jwt").value(mockJwt)); 
+                .andExpect(jsonPath("$.token").value(mockJwt));  // ✅ Changed from $.jwt to $.token (matches AuthenticationResponse)
     }
 
     @Test
@@ -134,11 +124,11 @@ public class AuthControllerIntegrationTest {
         request.setUsername("testuser");
         request.setPassword("wrongpass");
 
-        // Mock: AuthenticationManager โยน BadCredentialsException เมื่อรหัสผิด
+        // Mock: AuthenticationManager throws BadCredentialsException
         when(authenticationManager.authenticate(any()))
                 .thenThrow(new BadCredentialsException("Invalid username or password"));
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/auth/login")  // ✅ Changed from /api/auth to /auth
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
